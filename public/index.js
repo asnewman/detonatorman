@@ -1,4 +1,4 @@
-import "./styles.css";
+console.log("loading game");
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -8,6 +8,7 @@ const GRID_SIZE_X = 18;
 const GRID_SIZE_Y = 12;
 const MAX_BOMBS = 2;
 const BOMB_TIMER = 1500;
+const EXPLOSION_TIMER = 500;
 
 let player = {
   x: 0,
@@ -16,6 +17,7 @@ let player = {
 };
 
 let bombLocs = new Set();
+let explosionLocs = new Set();
 
 window.addEventListener("keydown", (e) => {
   const { x, y } = player;
@@ -53,28 +55,52 @@ const dropBomb = () => {
   const newBomb = { x: player.x, y: player.y };
 
   bombLocs.add(newBomb);
-  console.log(bombLocs);
   player = { ...player, activeBombs: player.activeBombs + 1 };
   render();
 
   setTimeout(() => {
-    //bombLocs.delete(newBomb);
+    bombLocs.delete(newBomb);
     player = { ...player, activeBombs: player.activeBombs - 1 };
+
+    const newExplosions = [];
+    newExplosions.push({ x: newBomb.x, y: newBomb.y });
+    newExplosions.push({ x: newBomb.x, y: newBomb.y + 1 });
+    newExplosions.push({ x: newBomb.x, y: newBomb.y + 2 });
+    newExplosions.push({ x: newBomb.x, y: newBomb.y - 1 });
+    newExplosions.push({ x: newBomb.x, y: newBomb.y - 2 });
+    newExplosions.push({ x: newBomb.x + 1, y: newBomb.y });
+    newExplosions.push({ x: newBomb.x + 2, y: newBomb.y });
+    newExplosions.push({ x: newBomb.x - 1, y: newBomb.y });
+    newExplosions.push({ x: newBomb.x - 2, y: newBomb.y });
+    newExplosions.forEach((newExplosion) => explosionLocs.add(newExplosion));
+
+    if (hasTouchedExplosion(player)) {
+      console.log("player has died");
+    }
+
     render();
+
+    setTimeout(() => {
+      newExplosions.forEach((newExplosion) =>
+        explosionLocs.delete(newExplosion)
+      );
+      render();
+    }, EXPLOSION_TIMER);
   }, BOMB_TIMER);
 };
 
-const hasCollision = (newPlayer) => {
-  console.log(bombLocs);
-  console.log({ x: newPlayer.x, y: newPlayer.y });
-  console.log(bombLocs.has({ x: newPlayer.x, y: newPlayer.y }));
+const hasCollision = (targetPlayer) => {
   return (
-    newPlayer.x >= GRID_SIZE_X ||
-    newPlayer.y >= GRID_SIZE_Y ||
-    newPlayer.x === -1 ||
-    newPlayer.y === -1 ||
-    setHas(bombLocs, { x: newPlayer.x, y: newPlayer.y })
+    targetPlayer.x >= GRID_SIZE_X ||
+    targetPlayer.y >= GRID_SIZE_Y ||
+    targetPlayer.x === -1 ||
+    targetPlayer.y === -1 ||
+    setHas(bombLocs, { x: targetPlayer.x, y: targetPlayer.y })
   );
+};
+
+const hasTouchedExplosion = (targetPlayer) => {
+  return setHas(explosionLocs, { x: targetPlayer.x, y: targetPlayer.y });
 };
 
 /**
@@ -82,17 +108,20 @@ const hasCollision = (newPlayer) => {
  */
 const setHas = (s, value) => {
   let has = false;
-  s.forEach(e => {
+  s.forEach((e) => {
     if (JSON.stringify(e) === JSON.stringify(value)) {
       has = true;
     }
   });
 
   return has;
-}
+};
 
 const renderNewPlayer = (newPlayer) => {
   if (hasCollision(newPlayer)) return;
+  if (hasTouchedExplosion(newPlayer)) {
+    console.log("player has died");
+  }
 
   player = { ...newPlayer };
   render();
@@ -107,6 +136,11 @@ const render = () => {
   bombLocs.forEach((bomb) => {
     ctx.fillStyle = "black";
     ctx.fillRect(bomb.x * CELL_SIZE, bomb.y * CELL_SIZE, 50, 50);
+  });
+
+  explosionLocs.forEach((explosion) => {
+    ctx.fillStyle = "red";
+    ctx.fillRect(explosion.x * CELL_SIZE, explosion.y * CELL_SIZE, 50, 50);
   });
 };
 
