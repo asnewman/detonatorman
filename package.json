@@ -7,7 +7,8 @@
     "start": "nodemon server.js -e html,js"
   },
   "dependencies": {
-    "express": "4"
+    "express": "4",
+    "ws": "^8.2.3"
   },
   "devDependencies": {
     "@babel/core": "7.2.0"

@@ -1,4 +1,38 @@
-console.log("loading game");
+const playerId = Math.floor(Math.random() * 100000);
+document.getElementById("playerId").innerText = `You are Player ${playerId}`;
+
+const socket = new WebSocket("ws://198.199.101.218:3000");
+socket.addEventListener("open", () => {
+  /**
+   * @typedef {import('./messageTypes.js').NewPlayerEvent}
+   */
+  const newPlayerMessage = {
+    eventName: "NewPlayer",
+    data: playerId,
+  };
+  socket.send(JSON.stringify(newPlayerMessage));
+});
+
+const logs = document.getElementById("logs");
+
+socket.addEventListener("message", (rawEvent) => {
+  const event = JSON.parse(rawEvent.data);
+  console.log(event);
+  const { eventName } = event;
+
+  switch (eventName) {
+    case "NewPlayer":
+      /**
+       * @typedef {import('./messageTypes.js').NewPlayerEvent}
+       */
+      const data = event.data;
+      const p = document.createElement("p");
+      p.innerText = `Player ${data} has connected!\n`;
+      logs.appendChild(p);
+    default:
+      break;
+  }
+});
 
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -20,6 +54,7 @@ let bombLocs = new Set();
 let explosionLocs = new Set();
 
 window.addEventListener("keydown", (e) => {
+  socket.send("new key pressed");
   const { x, y } = player;
   let newPlayer = { ...player };
   switch (e.key) {
